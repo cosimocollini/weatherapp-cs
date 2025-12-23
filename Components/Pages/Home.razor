@@ -1,0 +1,127 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject WeatherService WeatherService
+
+<PageTitle>Home</PageTitle>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Weather App Search</h3>
+                    <div class="input-group mb-3">
+                        <input @bind="city" class="form-control">
+                        <button @onclick="GetWeather" class="btn btn-primary">Search</button>
+                    </div>
+                    @if (weatherResponse != null)
+                    {
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4> @weatherResponse.Location.Name</h4>
+                                <button class="btn btn-warning"
+                                    @onclick="() => AddToFavourites(weatherResponse.Location.Name)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-bookmark" viewBox="0 0 16 16">
+                                        <path
+                                            d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <img src="@("https:" + weatherResponse.Current.Condition.Icon)" alt="" />
+                            <p> Temperature: @weatherResponse.Current.Temp_C</p>
+                            <p>Condition: @weatherResponse.Current.Condition.Text</p>
+                            <p>Wind: @weatherResponse.Current.Wind_Kph km/h (@weatherResponse.Current.Wind_Mph mph) from
+                                @weatherResponse.Current.Wind_Dir</p>
+                            <p>Humidity: @weatherResponse.Current.Humidity%</p>
+
+
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (favouritesWeather != null && favouritesWeather.Count > 0)
+    {
+        <div class="row mt-4">
+            <h3 class="col-12">Favourites Weather</h3>
+            @foreach (var weather in favouritesWeather)
+            {
+                <div class="col-md-3 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title">@weather.Location.Name</h5>
+                                <button class="btn btn-danger btn-sm"
+                                    @onclick="() => RemoveFromFavourites(weather.Location.Name)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                        class="bi bi-trash" viewBox="0 0 16 16">
+                                        <path
+                                            d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                                        <path
+                                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <img src="@("https:" + weather.Current.Condition.Icon)" alt="" class="img-fluid mb-2" />
+                            <p class="mb-1"><strong>Temperature:</strong> @weather.Current.Temp_C°C</p>
+                            <p class="mb-1"><strong>Condition:</strong> @weather.Current.Condition.Text</p>
+                            <p class="mb-1"><strong>Wind:</strong> @weather.Current.Wind_Kph km/h from @weather.Current.Wind_Dir
+                            </p>
+                            <p class="mb-0"><strong>Humidity:</strong> @weather.Current.Humidity%</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+@code {
+
+    private string city = "";
+    private WeatherResponse? weatherResponse;
+    private List<WeatherResponse>? favouritesWeather = new();
+    private List<Favourites>? weatherFavourites;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetFavList();
+        await LoadFavouritesWeather();
+    }
+    async Task GetWeather()
+    {
+        weatherResponse = await WeatherService.GetWeatherAsync(city);
+    }
+    async Task GetFavList()
+    {
+        weatherFavourites = await WeatherService.GetFavList();
+    }
+    async Task LoadFavouritesWeather()
+    {
+        favouritesWeather = new();
+        if (weatherFavourites != null)
+        {
+            foreach (var fav in weatherFavourites)
+            {
+                var weather = await WeatherService.GetWeatherAsync(fav.Name);
+                if (weather != null)
+                {
+                    favouritesWeather.Add(weather);
+                }
+            }
+        }
+    }
+    async Task AddToFavourites(string cityName)
+    {
+        await WeatherService.AddToFavourites(cityName);
+        await GetFavList();
+        await LoadFavouritesWeather();
+    }
+
+    async Task RemoveFromFavourites(string cityName)
+    {
+        await WeatherService.RemoveFromFavourites(cityName);
+        await GetFavList();
+        await LoadFavouritesWeather();
+    }
+}
