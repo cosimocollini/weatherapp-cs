@@ -6,7 +6,7 @@
 
 Simple weather application developed to practice with C# .NET, Entity Framework Core, and MySQL.
 
-## Tecnologie utilizzate
+## Tech stack
 
 - **C# .NET**
 - **Blazor**
